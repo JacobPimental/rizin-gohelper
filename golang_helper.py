@@ -1,10 +1,10 @@
-import r2pipe
+import rzpipe
 
 class GoLangHelper:
 
-    def __init__(self,r2):
-        self.r2 = r2
-        self.PTR_SIZE = self.r2.cmdj('ij')['bin']['bits'] // 8
+    def __init__(self,rz):
+        self.rz = rz
+        self.PTR_SIZE = self.rz.cmdj('iIj')['bits'] // 8
         self.gop = None
 
 
@@ -16,7 +16,7 @@ class GoLangHelper:
 
 
     def get_gopclntab(self):
-        sections = self.r2.cmdj('iSj')
+        sections = self.rz.cmdj('iSj')
         has_gop = self.is_gopclntab_defined(sections)
         if has_gop:
             print("gopclntab is defined")
@@ -29,8 +29,10 @@ class GoLangHelper:
 
 
     def find_gopclntab(self):
-        magic = 'fbffffff'
-        results = self.r2.cmdj('/xj {}'.format(magic))
+        magic = ['fbffffff', 'fffffffb']
+        results = []
+        for m in magic:
+            results += self.rz.cmdj('/xj {}'.format(m))
         for r in results:
             is_gop = self.is_gopclntab(r['offset'])
             if is_gop:
@@ -42,9 +44,9 @@ class GoLangHelper:
 
     def get_pointer(self, addr, size=None):
         if size:
-            return int(self.r2.cmd('pv{} @ {}'.format(size, addr)),16)
+            return int(self.rz.cmd('pv{} @ {}'.format(size, addr)),16)
         else:
-            return int(self.r2.cmd('pv @ {}'.format(addr)),16)
+            return int(self.rz.cmd('pv @ {}'.format(addr)),16)
 
 
     def is_gopclntab(self, offset):
@@ -68,12 +70,12 @@ class GoLangHelper:
             offset = self.get_pointer(addr + self.PTR_SIZE)
             name_str_off = self.get_pointer(base + offset + self.PTR_SIZE)
             name_addr = base + name_str_off
-            name = self.r2.cmd('psz @ {}'.format(name_addr))
+            name = self.rz.cmd('psz @ {}'.format(name_addr))
             name = self.format_name(name)
             if name and len(name) > 2:
                 print('Found name {} at 0x{:x}'.format(name, func_addr))
-                funcinfo = self.r2.cmdj('afij {}'.format(func_addr))
-                self.r2.cmd('af{} {} {}'.format('n' if funcinfo else '',
+                funcinfo = self.rz.cmdj('afij {}'.format(func_addr))
+                self.rz.cmd('af{} {} {}'.format('n' if funcinfo else '',
                                                 name, func_addr))
 
 
@@ -89,8 +91,8 @@ class GoLangHelper:
 
 
 if __name__ == '__main__':
-    r2 = r2pipe.open()
-    helper = GoLangHelper(r2)
+    rz = rzpipe.open()
+    helper = GoLangHelper(rz)
     gopclntab = helper.get_gopclntab()
     print(gopclntab)
     helper.rename_functions()
